@@ -24,8 +24,8 @@ const MAP_PARAMS = createSearchParams({
 });
 
 const ORIGINAL_CENTER: [number, number] = [-3.36582694670303, 47.7481313778523];
+
 const ORIGINAL_ZOOM = 5;
-const ZOOM_WHEN_SELECTED_ADDRESS = 10;
 const UNITS = ["km", "miles"] as const;
 
 // TODO : debounce à mettre en place
@@ -40,7 +40,11 @@ const MapExtentSelector = () => {
   const [selectedUnits, setSelectedUnits] =
     useState<typeof UNITS[number]>("km");
 
-  const setNewCenter = useMap("map", ORIGINAL_CENTER, ORIGINAL_ZOOM);
+  const { setNewCenterAndNewZoom, fitViewToPolygon } = useMap(
+    "map",
+    ORIGINAL_CENTER,
+    ORIGINAL_ZOOM
+  );
 
   useEffect(() => {
     if (inputText.length <= 3 || selectedCity !== null) return;
@@ -48,7 +52,6 @@ const MapExtentSelector = () => {
     setIsLoading(true);
     getCities(inputText)
       .then((res) => {
-        console.log(res.data);
         setCityPropositions(res.data);
       })
       .catch((e) => console.warn("error " + e))
@@ -57,14 +60,11 @@ const MapExtentSelector = () => {
 
   useEffect(() => {
     if (selectedCity === null) {
-      setNewCenter(ORIGINAL_CENTER, ORIGINAL_ZOOM);
+      setNewCenterAndNewZoom(ORIGINAL_CENTER, ORIGINAL_ZOOM);
       return;
     }
 
-    /* setNewCenter(
-      [selectedAddress.x, selectedAddress.y],
-      ZOOM_WHEN_SELECTED_ADDRESS
-    ); */
+    fitViewToPolygon(selectedCity.contour.coordinates);
   }, [selectedCity]);
 
   return (
@@ -113,7 +113,9 @@ const MapExtentSelector = () => {
               sx={{ ml: 2, width: 100 }}
             >
               {UNITS.map((u) => (
-                <MenuItem value={u}>{u}</MenuItem>
+                <MenuItem key={u} value={u}>
+                  {u}
+                </MenuItem>
               ))}
             </Select>
           </Box>
