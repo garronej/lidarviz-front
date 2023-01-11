@@ -13,11 +13,7 @@ import {
   TextField,
 } from "@mui/material";
 import TextFieldWithOptions from "../../components/TextFieldWithOptions/TextFieldWithOptions";
-import {
-  Address,
-  getCities,
-  getStreetAddressAndPositionOfInterest,
-} from "../../api/ignGeoportail";
+import { City, getCities } from "../../api/geoApiGouv";
 import useMap from "../../hooks/useMap";
 
 const MAP_PARAMS = createSearchParams({
@@ -38,8 +34,8 @@ const MapExtentSelector = () => {
   const navigate = useNavigate();
 
   const [inputText, setInputText] = useState<string>("");
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
-  const [addressPropositions, setAddressPropositions] = useState<Address[]>([]);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [cityPropositions, setCityPropositions] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedUnits, setSelectedUnits] =
     useState<typeof UNITS[number]>("km");
@@ -47,36 +43,29 @@ const MapExtentSelector = () => {
   const setNewCenter = useMap("map", ORIGINAL_CENTER, ORIGINAL_ZOOM);
 
   useEffect(() => {
-    if (inputText.length <= 3 || selectedAddress !== null) return;
+    if (inputText.length <= 3 || selectedCity !== null) return;
 
     setIsLoading(true);
-    getCities(inputText).then((res) => {
-      console.log(res);
-      const restults;
-    });
-    // getStreetAddressAndPositionOfInterest(inputText)
-    //   .then((res) => {
-    //     const results = res.data.results;
-    //     const addresses = results.map((r) => {
-    //       return { name: r.fulltext, x: r.x, y: r.y };
-    //     });
-    //     setAddressPropositions(addresses);
-    //   })
-    //   .catch((e) => console.log("error " + e))
-    //   .finally(() => setIsLoading(false));
-  }, [inputText, selectedAddress]);
+    getCities(inputText)
+      .then((res) => {
+        console.log(res.data);
+        setCityPropositions(res.data);
+      })
+      .catch((e) => console.warn("error " + e))
+      .finally(() => setIsLoading(false));
+  }, [inputText, selectedCity]);
 
   useEffect(() => {
-    if (selectedAddress === null) {
+    if (selectedCity === null) {
       setNewCenter(ORIGINAL_CENTER, ORIGINAL_ZOOM);
       return;
     }
 
-    setNewCenter(
+    /* setNewCenter(
       [selectedAddress.x, selectedAddress.y],
       ZOOM_WHEN_SELECTED_ADDRESS
-    );
-  }, [selectedAddress]);
+    ); */
+  }, [selectedCity]);
 
   return (
     <Box
@@ -129,13 +118,16 @@ const MapExtentSelector = () => {
             </Select>
           </Box>
 
-          <TextFieldWithOptions
-            value={selectedAddress}
-            setValue={setSelectedAddress}
+          <TextFieldWithOptions<City>
+            value={selectedCity}
+            setValue={setSelectedCity}
             inputValue={inputText}
             setInputValue={setInputText}
-            options={addressPropositions}
+            options={cityPropositions}
             isLoading={isLoading}
+            getOptionLabel={(option: City) =>
+              option.nom + ", " + option.codesPostaux[0]
+            }
           />
 
           <Button
@@ -143,7 +135,7 @@ const MapExtentSelector = () => {
             fullWidth
             sx={{ mt: 1, p: 2 }}
             onClick={() => navigate(ROUTES.MapViewer + "?" + MAP_PARAMS)}
-            disabled={selectedAddress === null}
+            disabled={selectedCity === null}
           >
             Extraire
           </Button>
